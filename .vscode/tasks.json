@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build (CMake)",
+      "type": "shell",
+      "command": "cmake -S . -B build && cmake --build build",
+      "group": "build",
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "Run (with input)",
+      "type": "shell",
+      "command": "./build/ProcessScheduler ./data/input.txt",
+      "dependsOn": "Build (CMake)",
+      "group": "test"
+    }
+  ]
+}
