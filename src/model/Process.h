@@ -40,6 +40,8 @@ private:
     bool forkedChild = false; // true if created by fork
     bool forkedOnce = false;  // each process can fork at most once
 
+    int deadline = -1; // absolute deadline time, -1 means "no deadline"
+
 public:
     Process(int PID, int AT, int CT, int ioCnt, IORequest *ioArr);
     ~Process();
@@ -111,4 +113,8 @@ public:
 
     void addChild(Process *c) { children.pushBack(c); }
     LinkedList<Process *> &getChildren() { return children; }
+
+    void setDeadline(int d) { deadline = d; }
+    int getDeadline() const { return deadline; }
+    bool hasDeadline() const { return deadline >= 0; }
 };

@@ -6,9 +6,11 @@
 #include <fstream>
 #include <climits>
 #include <cstdlib>
+#include <iomanip>
 #include "processors/FCFSProcessor.h"
 #include "processors/SJFProcessor.h"
 #include "processors/RRProcessor.h"
+#include "processors/EDFProcessor.h"
 
 // ================= Scheduler =================
 Scheduler::Scheduler()
@@ -38,34 +40,27 @@ Scheduler::~Scheduler()
 
 void Scheduler::buildProcessors()
 {
-    totalProcs = in.NF + in.NS + in.NR;
+    totalProcs = in.NF + in.NS + in.NR + in.NE;
     processors = new Processor *[totalProcs];
 
     int idx = 0;
-    for (int i = 0; i < in.NF; ++i)
-    {
-        processors[idx] = new FCFSProcessor(idx + 1);
-        ++idx;
-    }
-    for (int i = 0; i < in.NS; ++i)
-    {
-        processors[idx] = new SJFProcessor(idx + 1);
-        ++idx;
-    }
-    for (int i = 0; i < in.NR; ++i)
-    {
-        processors[idx] = new RRProcessor(idx + 1);
-        ++idx;
-    }
 
-    // set RR time slice on RR processors
+    for (int i = 0; i < in.NF; ++i)
+        processors[idx++] = new FCFSProcessor(idx);
+
+    for (int i = 0; i < in.NS; ++i)
+        processors[idx++] = new SJFProcessor(idx);
+
+    for (int i = 0; i < in.NR; ++i)
+        processors[idx++] = new RRProcessor(idx);
+
+    for (int i = 0; i < in.NE; ++i)
+        processors[idx++] = new EDFProcessor(idx);
+
+    // set RR time slice
     for (int i = 0; i < totalProcs; ++i)
-    {
         if (processors[i]->getType() == ProcType::RR)
-        {
             processors[i]->setTimeSlice(in.timeSlice);
-        }
-    }
 }
 
 bool Scheduler::load(const std::string &inputPath, std::string &err)
@@ -91,8 +86,8 @@ bool Scheduler::load(const std::string &inputPath, std::string &err)
 void Scheduler::printLoadedSummary() const
 {
     std::cout << "=== Input Loaded Successfully ===\n";
-    std::cout << "Processors: NF=" << in.NF << " NS=" << in.NS << " NR=" << in.NR
-              << "  (Total=" << (in.NF + in.NS + in.NR) << ")\n";
+    std::cout << "Processors: NF=" << in.NF << " NS=" << in.NS << " NR=" << in.NR << " NE=" << in.NE
+              << "  (Total=" << (in.NF + in.NS + in.NR + in.NE) << ")\n";
     std::cout << "RR TimeSlice=" << in.timeSlice << "\n";
     std::cout << "RTF=" << in.RTF << " MaxW=" << in.MaxW << " STL=" << in.STL
               << " ForkProb=" << in.forkProb << "%\n";
@@ -215,7 +210,7 @@ void Scheduler::printSnapshot(int t) const
     {
         const char *typeStr =
             (processors[i]->getType() == ProcType::FCFS) ? "FCFS" : (processors[i]->getType() == ProcType::SJF) ? "SJF"
-                                                                                                                : "RR";
+                                                                                                                : (processors[i]->getType() == ProcType::EDF) ? "EDF" : "RR";
 
         std::cout << "P" << processors[i]->getID() << " [" << typeStr << "]\n";
 
@@ -353,20 +348,25 @@ void Scheduler::postCpuTransitions(int t)
     }
 }
 
-void Scheduler::finishIOIfDone()
+void Scheduler::finishIOIfDone(int t)
 {
     if (!ioDev)
         return;
     if (ioRemaining > 0)
         return;
 
-    // I/O finished => move to RDY of best processor
     Process *done = ioDev;
     ioDev = nullptr;
 
     done->setState(ProcState::RDY);
     int idx = pickBestProcessorIndex();
     processors[idx]->enqueue(done);
+
+    // EDF preemption check (if it went to EDF)
+    if (processors[idx]->getType() == ProcType::EDF)
+    {
+        edfPreemptIfNeeded(processors[idx], t);
+    }
 }
 
 void Scheduler::startIOIfPossible()
@@ -409,8 +409,15 @@ void Scheduler::admitArrivals(int t)
         in.newList.popFront(moved);
 
         moved->setState(ProcState::RDY);
+
         int idx = pickBestProcessorIndex();
         processors[idx]->enqueue(moved);
+
+        // EDF preemption check (if this target processor is EDF)
+        if (processors[idx]->getType() == ProcType::EDF)
+        {
+            edfPreemptIfNeeded(processors[idx], t);
+        }
     }
 }
 
@@ -445,7 +452,7 @@ void Scheduler::simulate(UIMode mode)
         postCpuTransitions(t);
 
         // 8) IO finish/start
-        finishIOIfDone();
+        finishIOIfDone(t);
         startIOIfPossible();
 
         // 9) print
@@ -748,37 +755,54 @@ int Scheduler::findShortestByEFT() const
     return best;
 }
 
+#include <fstream>
+#include <iomanip>
+
 void Scheduler::writeOutputFile(const std::string &path) const
 {
     std::ofstream out(path);
     if (!out)
         return;
 
-    // Header
-    out << "TT PID AT CT IO_D WT RT TRT\n";
+    // add DL column
+    out << "TT PID AT CT DL IO_D WT RT TRT\n";
 
     long long sumWT = 0, sumRT = 0, sumTRT = 0;
     int count = 0;
+
+    int completedWithDL = 0;
+    int metDL = 0;
 
     Node<Process *> *n = trm.getHead();
     while (n)
     {
         Process *p = n->data;
+
         int TT = p->getTT();
         int AT = p->getAT();
         int CT = p->getCT();
+        int DL = p->hasDeadline() ? p->getDeadline() : -1;
         int IO_D = p->getTotalIODur();
+
         int TRT = TT - AT;
-        int WT = TRT - CT;
+        int WT = TRT - CT; // if you want: WT = TRT - CT - IO_D (depending on your rubric)
         int RT = p->hasFirstRun() ? (p->getFirstRunTime() - AT) : 0;
 
         out << TT << " " << p->getPID() << " " << AT << " " << CT << " "
-            << IO_D << " " << WT << " " << RT << " " << TRT << "\n";
+            << DL << " " << IO_D << " " << WT << " " << RT << " " << TRT << "\n";
 
         sumWT += WT;
         sumRT += RT;
         sumTRT += TRT;
         ++count;
+
+        // deadline metric: only for completed processes with deadlines
+        if (p->isFinished() && p->hasDeadline())
+        {
+            ++completedWithDL;
+            if (TT <= DL)
+                ++metDL;
+        }
 
         n = n->next;
     }
@@ -798,6 +822,18 @@ void Scheduler::writeOutputFile(const std::string &path) const
         out << "Avg TRT: " << (double)sumTRT / count << "\n";
     }
 
+    // Deadline metric
+    if (completedWithDL > 0)
+    {
+        double pct = 100.0 * metDL / completedWithDL;
+        out << "Completed before deadline: " << pct
+            << "% (" << metDL << "/" << completedWithDL << ")\n";
+    }
+    else
+    {
+        out << "Completed before deadline: N/A (no deadlines)\n";
+    }
+
     out << "\n--- Processor Stats ---\n";
     for (int i = 0; i < totalProcs; ++i)
     {
@@ -808,9 +844,43 @@ void Scheduler::writeOutputFile(const std::string &path) const
 
         const char *typeStr =
             (processors[i]->getType() == ProcType::FCFS) ? "FCFS" : (processors[i]->getType() == ProcType::SJF) ? "SJF"
-                                                                                                                : "RR";
+                                                                : (processors[i]->getType() == ProcType::RR)    ? "RR"
+                                                                                                                : "EDF";
 
         out << "P" << processors[i]->getID() << " [" << typeStr << "] "
             << "busy=" << busy << " idle=" << idle << " util%=" << util << "\n";
+    }
+}
+
+void Scheduler::edfPreemptIfNeeded(Processor *cpu, int t)
+{
+    if (!cpu)
+        return;
+    if (cpu->getType() != ProcType::EDF)
+        return;
+
+    Process *run = cpu->getRunning();
+    Process *top = cpu->peekReady();
+    if (!run || !top)
+        return;
+
+    int dr = run->hasDeadline() ? run->getDeadline() : INT_MAX;
+    int dt = top->hasDeadline() ? top->getDeadline() : INT_MAX;
+
+    if (dt < dr)
+    {
+        // preempt running
+        run->setState(ProcState::RDY);
+        cpu->enqueue(run);
+        cpu->clearRunning();
+        cpu->resetQuantum();
+
+        Process *next = cpu->popReady();
+        if (next)
+        {
+            next->setState(ProcState::RUN);
+            next->markFirstRunIfNeeded(t);
+            cpu->setRunning(next);
+        }
     }
 }

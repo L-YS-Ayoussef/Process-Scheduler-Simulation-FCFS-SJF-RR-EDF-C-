@@ -1,0 +1,46 @@
+# ===== C++ / CMake / Windows / VS Code =====
+
+# Build directories
+build/
+out/
+bin/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# MSVC / Visual Studio
+.vs/
+*.sln
+*.vcxproj*
+*.filters
+*.user
+*.pdb
+*.ilk
+*.obj
+*.ipch
+*.tlog
+*.log
+Debug/
+Release/
+x64/
+Win32/
+
+# Executables / libraries
+*.exe
+*.dll
+*.lib
+*.exp
+*.a
+*.o
+
+# VS Code
+.vscode/
+
+# OS junk
+Thumbs.db
+.DS_Store
+
+# Generated outputs (keep inputs)
+data/output*.txt

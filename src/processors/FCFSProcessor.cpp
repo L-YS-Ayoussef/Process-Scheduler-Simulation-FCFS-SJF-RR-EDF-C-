@@ -48,7 +48,7 @@ bool FCFSProcessor::removeReadyByPID(int pid, Process *&out)
         {
             out = p;
             found = true;
-            readyWork -= p->getRemaining(); // IMPORTANT (update readyWork)
+            readyWork -= p->getRemaining();
         }
         else
         {

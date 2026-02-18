@@ -1,20 +1,22 @@
-#include "processors/SJFProcessor.h"
+#include "processors/EDFProcessor.h"
 #include "model/Process.h"
 
-bool SJFProcessor::lessProc(Process *const &a, Process *const &b)
+bool EDFProcessor::lessEDF(Process *const &a, Process *const &b)
 {
-    if (a->getRemaining() != b->getRemaining())
-        return a->getRemaining() < b->getRemaining();
+    int da = a->hasDeadline() ? a->getDeadline() : INT_MAX;
+    int db = b->hasDeadline() ? b->getDeadline() : INT_MAX;
+    if (da != db)
+        return da < db;
     return a->getPID() < b->getPID();
 }
 
-void SJFProcessor::enqueue(Process *p)
+void EDFProcessor::enqueue(Process *p)
 {
     heap.push(p);
     readyWork += p->getRemaining();
 }
 
-Process *SJFProcessor::popReady()
+Process *EDFProcessor::popReady()
 {
     if (heap.empty())
         return nullptr;
@@ -23,12 +25,12 @@ Process *SJFProcessor::popReady()
     return p;
 }
 
-Process *SJFProcessor::peekReady() const
+Process *EDFProcessor::peekReady() const
 {
     return heap.peek();
 }
 
-void SJFProcessor::printReady(std::ostream &os) const
+void EDFProcessor::printReady(std::ostream &os) const
 {
     Process *const *raw = heap.raw();
     std::size_t n = heap.rawSize();

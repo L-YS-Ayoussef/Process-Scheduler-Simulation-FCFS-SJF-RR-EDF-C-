@@ -6,7 +6,7 @@
 
 struct ParsedInput
 {
-    int NF{}, NS{}, NR{};
+    int NF{}, NS{}, NR{}, NE{};
     int timeSlice{};
     int RTF{}, MaxW{}, STL{}, forkProb{};
     int M{};

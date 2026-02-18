@@ -1,25 +1,23 @@
-TT PID AT CT IO_D WT RT TRT
-6 2 0 6 0 0 0 6
-10 4 2 4 0 4 4 8
-11 5 3 9 2 -1 0 8
-11 7 3 9 0 -1 4 8
-15 1 0 10 3 5 0 15
-15 8 13 2 0 0 2 2
-17 6 4 7 0 6 6 13
-18 3 1 12 3 5 0 17
+TT PID AT CT DL IO_D WT RT TRT
+2 1 0 2 6 0 0 0 2
+2 2 0 2 6 0 0 0 2
+3 4 1 2 6 0 0 0 2
+4 3 1 2 6 0 1 1 3
 
 --- Summary ---
-Total Processes: 8
-Forked Created: 2
-Killed (SIGKILL+ORPHAN): 3
+Total Processes: 4
+Forked Created: 0
+Killed (SIGKILL+ORPHAN): 0
 Migration RTF (RR->SJF): 1
 Migration MaxW (FCFS->RR): 0
 Steal Moves: 0
-Avg WT: 2.25
-Avg RT: 2
-Avg TRT: 9.625
+Avg WT: 0.25
+Avg RT: 0.25
+Avg TRT: 2.25
+Completed before deadline: 100% (4/4)
 
 --- Processor Stats ---
-P1 [FCFS] busy=14 idle=4 util%=77.7778
-P2 [SJF] busy=18 idle=0 util%=100
-P3 [RR] busy=15 idle=3 util%=83.3333
+P0 [FCFS] busy=2 idle=2 util%=50
+P1 [SJF] busy=4 idle=0 util%=100
+P2 [RR] busy=0 idle=4 util%=0
+P3 [EDF] busy=2 idle=2 util%=50

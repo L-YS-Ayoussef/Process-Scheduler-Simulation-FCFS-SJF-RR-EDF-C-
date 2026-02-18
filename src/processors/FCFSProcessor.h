@@ -19,5 +19,5 @@ public:
     std::size_t readyCount() const override { return rdy.size(); }
     void printReady(std::ostream &os) const override;
 
-    bool removeReadyByPID(int pid, Process *&out); // NEW (for SIGKILL)
+    bool removeReadyByPID(int pid, Process *&out);
 };

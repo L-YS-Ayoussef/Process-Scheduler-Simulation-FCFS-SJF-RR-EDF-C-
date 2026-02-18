@@ -37,7 +37,6 @@ private:
     LinkedList<Process *> trm;
     int trmCount;
 
-    // ===== Milestone D additions =====
     int nextPid;      // next PID for forked children
     int totalCreated; // total processes including forked children (stop condition)
 
@@ -58,14 +57,13 @@ private:
 
     // ===== Phase2 core steps you already have =====
     void admitArrivals(int t);
-    void dispatchIdleCPUs(int t); // UPDATED in Milestone D
+    void dispatchIdleCPUs(int t);
     void executeOneTick();
     void postCpuTransitions(int t);
-    void finishIOIfDone();
+    void finishIOIfDone(int t);
     void startIOIfPossible();
 
-    // ===== Milestone D helpers (prototypes requested) =====
-    void initNextPid(); // FIX: now Scheduler has it
+    void initNextPid();
 
     void terminateProcess(Process *p, int tt, TermReason why);
 
@@ -95,6 +93,8 @@ public:
 
     void printLoadedSummary() const;
 
-    // FINAL function name (no phases)
+    // FINAL function name
     void simulate(UIMode mode);
+
+    void edfPreemptIfNeeded(Processor *cpu, int t);
 };

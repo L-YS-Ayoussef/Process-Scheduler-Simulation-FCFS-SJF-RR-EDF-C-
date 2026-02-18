@@ -8,7 +8,8 @@ enum class ProcType
 {
     FCFS,
     SJF,
-    RR
+    RR,
+    EDF
 };
 
 class Processor
@@ -20,7 +21,6 @@ protected:
     long long readyWork; // sum of remaining in RDY
     Process *running;
 
-    // Phase2 stats
     long long busyTime;
     long long idleTime;
 

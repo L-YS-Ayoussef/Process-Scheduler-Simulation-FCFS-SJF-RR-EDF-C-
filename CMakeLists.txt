@@ -13,6 +13,7 @@ add_executable(ProcessScheduler
   src/processors/FCFSProcessor.cpp
   src/processors/RRProcessor.cpp
   src/processors/SJFProcessor.cpp
+  src/processors/EDFProcessor.cpp
 )
 
 target_include_directories(ProcessScheduler PRIVATE src)

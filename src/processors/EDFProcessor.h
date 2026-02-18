@@ -5,14 +5,14 @@
 
 class Process;
 
-class SJFProcessor : public Processor
+class EDFProcessor : public Processor
 {
 private:
-    static bool lessProc(Process *const &a, Process *const &b);
+    static bool lessEDF(Process *const &a, Process *const &b);
     MinHeap<Process *> heap;
 
 public:
-    SJFProcessor(int id) : Processor(id, ProcType::SJF), heap(&SJFProcessor::lessProc) {}
+    EDFProcessor(int id) : Processor(id, ProcType::EDF), heap(&EDFProcessor::lessEDF) {}
 
     void enqueue(Process *p) override;
     Process *popReady() override;
