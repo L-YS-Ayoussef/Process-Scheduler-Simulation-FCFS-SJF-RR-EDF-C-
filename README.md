@@ -34,21 +34,11 @@ It simulates multiple processor types (**FCFS, SJF, RR, EDF**) with process stat
 - `--mode=step` (prints each timestep)
 - `--mode=silent` (no snapshots, only final output file)
 
-### Output file
-
-Writes a report to `data/output.txt` including:
-
-- Per-process table: `TT PID AT CT DL IO_D WT RT TRT`
-- Summary stats: totals, averages, migrations, steals, forks, kills
-- Per-processor busy/idle/utilization
-- **Deadline metric:** percentage of completed processes that met their deadline
-
 ---
 
 ## Project structure
 
 ```
-CMakeLists.txt
 data/
   input.txt
   output.txt
